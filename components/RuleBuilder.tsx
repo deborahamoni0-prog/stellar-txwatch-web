@@ -33,6 +33,10 @@ export default function RuleBuilder({ rules, onChange }: RuleBuilderProps) {
     setError(null)
   }
 
+  function isValidFunctionName(name: string): boolean {
+    return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)
+  }
+
   function addRule() {
     if (draft.type === 'LargeTransfer') {
       if (!draft.threshold_xlm || draft.threshold_xlm <= 0) {
@@ -45,11 +49,21 @@ export default function RuleBuilder({ rules, onChange }: RuleBuilderProps) {
         setError('Enter a function name')
         return
       }
+      if (!isValidFunctionName(draft.function_name.trim())) {
+        setError('Function name must start with a letter or underscore, contain only alphanumeric characters and underscores')
+        return
+      }
     }
     if (draft.type === 'AdminFunctionCalled') {
       if (!draft.function_names?.length) {
         setError('Enter at least one function name')
         return
+      }
+      for (const name of draft.function_names) {
+        if (!isValidFunctionName(name)) {
+          setError(`Invalid function name "${name}": must start with a letter or underscore, contain only alphanumeric characters and underscores`)
+          return
+        }
       }
     }
     onChange([...rules, draft])
