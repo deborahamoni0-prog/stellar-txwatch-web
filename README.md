@@ -35,7 +35,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Install the [Freighter wallet extension](https://www.freighter.app/) to enable contract registration.
+### Browser & wallet requirements
+
+- **Browsers**: Chrome, Firefox, Edge, Safari (latest versions)
+- **Wallet**: [Freighter extension](https://www.freighter.app/) required for contract registration and transaction signing
+  - Install from [freighter.app](https://www.freighter.app/)
+  - Supported on Chrome, Firefox, and Edge
+  - Must be connected to the same network (Mainnet, Testnet, or Futurenet) as the contract you're registering
 
 ## Project structure
 
