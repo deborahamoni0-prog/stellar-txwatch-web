@@ -7,6 +7,7 @@ import { isValidContractId, isValidUrl } from '@/lib/stellar'
 import { saveContract } from '@/lib/storage'
 import { sendTestWebhook } from '@/lib/api'
 import RuleBuilder from '@/components/RuleBuilder'
+import FreighterConnect from '@/components/FreighterConnect'
 
 interface FormErrors {
   label?: string
@@ -28,6 +29,10 @@ export default function NewContractPage() {
   const [testStatus, setTestStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle')
   const [testError, setTestError] = useState<string | null>(null)
 
+  function handleWalletConnect() {
+    setErrors((prev) => ({ ...prev, wallet: undefined }))
+  }
+
   function validate(): FormErrors {
     const e: FormErrors = {}
     if (!label.trim()) e.label = 'Label is required'
@@ -35,7 +40,7 @@ export default function NewContractPage() {
     else if (!isValidContractId(contractId.trim())) e.contract_id = 'Must be a valid Soroban contract address (starts with C, 56 chars)'
     if (!webhookUrl.trim()) e.webhook_url = 'Webhook URL is required'
     else if (!isValidUrl(webhookUrl.trim())) e.webhook_url = 'Must be a valid http/https URL'
-    if (rules.length === 0) e.rules = 'Add at least one alert rule'
+    if (rules.length === 0) e.rules = 'Add at least one alert rule to monitor this contract'
     return e
   }
 
@@ -69,7 +74,8 @@ export default function NewContractPage() {
 
   async function handleTestWebhook() {
     if (!webhookUrl.trim() || !isValidUrl(webhookUrl.trim())) {
-      setErrors((e) => ({ ...e, webhook_url: 'Enter a valid URL to test' }))
+      setTestStatus('error')
+      setTestError('Enter a valid URL to test')
       return
     }
     setTestStatus('sending')
@@ -161,6 +167,12 @@ export default function NewContractPage() {
           <label className="block text-sm font-medium text-zinc-300 mb-1.5">Alert Rules</label>
           <RuleBuilder rules={rules} onChange={setRules} />
           {errors.rules && <p className="mt-1 text-xs text-red-400">{errors.rules}</p>}
+        </div>
+
+        {/* Wallet Connection */}
+        <div>
+          <label className="block text-sm font-medium text-zinc-300 mb-1.5">Wallet</label>
+          <FreighterConnect onConnect={handleWalletConnect} />
         </div>
 
         {errors.wallet && (
