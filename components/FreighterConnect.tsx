@@ -12,6 +12,8 @@ declare global {
   }
 }
 
+const WALLET_STORAGE_KEY = 'freighter_public_key'
+
 interface FreighterConnectProps {
   onConnect?: (publicKey: string) => void
   className?: string
@@ -26,12 +28,19 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
   useEffect(() => {
     const checkConnection = async () => {
       try {
+        const stored = localStorage.getItem(WALLET_STORAGE_KEY)
+        if (stored) {
+          setPublicKey(stored)
+          onConnect?.(stored)
+          return
+        }
         const connected = await window.freighter?.isConnected()
         if (connected) {
           const key = await window.freighter!.getPublicKey()
           const network = await window.freighter!.getNetwork()
           if (key && network) {
             setPublicKey(key)
+            localStorage.setItem(WALLET_STORAGE_KEY, key)
             onConnect?.(key)
           }
         }
@@ -61,6 +70,7 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
         return
       }
       setPublicKey(key)
+      localStorage.setItem(WALLET_STORAGE_KEY, key)
       onConnect?.(key)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Connection rejected'
@@ -73,6 +83,7 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
 
   function disconnect() {
     setPublicKey(null)
+    localStorage.removeItem(WALLET_STORAGE_KEY)
   }
 
   if (publicKey) {
