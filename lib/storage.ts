@@ -24,6 +24,13 @@ export function getContract(id: string): WatchedContract | undefined {
   return getContracts().find((c) => c.id === id)
 }
 
+export function getContractByIdAndNetwork(
+  contractId: string,
+  network: string
+): WatchedContract | undefined {
+  return getContracts().find((c) => c.contract_id === contractId && c.network === network)
+}
+
 export function saveContract(contract: WatchedContract) {
   const contracts = getContracts().filter((c) => c.id !== contract.id)
   save(CONTRACTS_KEY, [...contracts, contract])
