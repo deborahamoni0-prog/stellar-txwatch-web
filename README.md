@@ -259,6 +259,26 @@ Lint  →  Type-check  →  Build
 
 See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
 
+## Roadmap
+
+### Near-term
+
+- [ ] Multi-signature contract support
+- [ ] Advanced filtering and search for alert history
+- [ ] Export alert logs as CSV
+
+### Medium-term
+
+- [ ] Real-time WebSocket updates for alert delivery
+- [ ] Custom alert rule templates
+- [ ] Batch contract registration
+
+### Future
+
+- [ ] Mobile app (React Native)
+- [ ] Alert aggregation across multiple contracts
+- [ ] Integration with external notification services (Slack, Discord, email)
+
 ## Sister repos
 
 - [stellar-txwatch-core](https://github.com/Tx-wat/stellar-txwatch-core) — Rust monitoring engine
