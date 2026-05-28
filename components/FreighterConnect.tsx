@@ -37,8 +37,7 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
     setError(null)
     try {
       if (!window.freighter) {
-        window.open('https://www.freighter.app/', '_blank')
-        setError('Freighter not installed — install the extension and reload')
+        setError('Freighter wallet not detected')
         return
       }
       const key = await window.freighter.getPublicKey()
@@ -92,7 +91,21 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
         )}
         Connect Freighter
       </button>
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {error && (
+        <div className="mt-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+          <p className="text-xs text-red-400">{error}</p>
+          {error === 'Freighter wallet not detected' && (
+            <a
+              href="https://www.freighter.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-red-300 hover:text-red-200 underline mt-2 inline-block"
+            >
+              Install Freighter extension →
+            </a>
+          )}
+        </div>
+      )}
     </div>
   )
 }
