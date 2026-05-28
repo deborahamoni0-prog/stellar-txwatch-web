@@ -54,3 +54,15 @@ All types live in `types/index.ts` and must stay in sync with the Rust structs i
 - Keep PRs focused — one feature or fix per PR
 - All pages must be mobile responsive and dark-mode compatible
 - Run `npm run build` before opening a PR — zero lint errors required
+
+### PR Checklist
+
+Before submitting a pull request, ensure:
+
+- [ ] **Testing**: All changes have been tested locally (`npm run dev`)
+- [ ] **Screenshots**: Mobile and desktop screenshots included for UI changes
+- [ ] **Mobile Review**: Verified responsive design on mobile devices
+- [ ] **Lint**: Zero lint errors (`npm run build` passes without warnings)
+- [ ] **Types**: TypeScript types are correct and no `any` types added
+- [ ] **Commits**: Follows [Conventional Commits](https://www.conventionalcommits.org/) format
+- [ ] **Documentation**: README or CONTRIBUTING updated if needed
