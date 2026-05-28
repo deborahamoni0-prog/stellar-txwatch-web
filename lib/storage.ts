@@ -67,3 +67,13 @@ export function onAlertsChange(callback: () => void): () => void {
   window.addEventListener('storage', handler)
   return () => window.removeEventListener('storage', handler)
 }
+
+export function onContractsChange(callback: () => void): () => void {
+  const handler = (e: StorageEvent) => {
+    if (e.key === CONTRACTS_KEY) {
+      callback()
+    }
+  }
+  window.addEventListener('storage', handler)
+  return () => window.removeEventListener('storage', handler)
+}
