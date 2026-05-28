@@ -21,10 +21,10 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
   const [publicKey, setPublicKey] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isConnected, setIsConnected] = useState(false)
 
   useEffect(() => {
     checkConnection()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function checkConnection() {
@@ -34,11 +34,10 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
       if (connected) {
         const key = await window.freighter.getPublicKey()
         setPublicKey(key)
-        setIsConnected(true)
         onConnect?.(key)
       }
     } catch {
-      setIsConnected(false)
+      // Connection check failed
     }
   }
 
@@ -49,16 +48,13 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
       if (!window.freighter) {
         window.open('https://www.freighter.app/', '_blank')
         setError('Freighter not installed — install the extension and reload')
-        setIsConnected(false)
         return
       }
       const key = await window.freighter.getPublicKey()
       setPublicKey(key)
-      setIsConnected(true)
       onConnect?.(key)
     } catch {
       setError('Connection rejected')
-      setIsConnected(false)
     } finally {
       setLoading(false)
     }
@@ -66,7 +62,6 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
 
   function disconnect() {
     setPublicKey(null)
-    setIsConnected(false)
   }
 
   if (publicKey) {
