@@ -27,34 +27,23 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
   const [isInitializing, setIsInitializing] = useState(true)
 
   useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const stored = localStorage.getItem(WALLET_STORAGE_KEY)
-        if (stored) {
-          setPublicKey(stored)
-          onConnect?.(stored)
-          setIsInitializing(false)
-          return
-        }
-        const connected = await window.freighter?.isConnected()
-        if (connected) {
-          const key = await window.freighter!.getPublicKey()
-          const network = await window.freighter!.getNetwork()
-          if (key && network) {
-            setPublicKey(key)
-            localStorage.setItem(WALLET_STORAGE_KEY, key)
-            onConnect?.(key)
-          }
-        }
-      } catch (err) {
-        console.error('Freighter connection check failed:', err)
-        setError('Failed to check wallet connection')
-      } finally {
-        setIsInitializing(false)
-      }
-    }
     checkConnection()
-  }, [onConnect])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function checkConnection() {
+    try {
+      if (!window.freighter) return
+      const connected = await window.freighter.isConnected()
+      if (connected) {
+        const key = await window.freighter.getPublicKey()
+        setPublicKey(key)
+        onConnect?.(key)
+      }
+    } catch {
+      // Connection check failed
+    }
+  }
 
   async function connect() {
     if (isConnecting) return
@@ -64,7 +53,7 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
     try {
       if (!window.freighter) {
         window.open('https://www.freighter.app/', '_blank')
-        setError('Freighter not installed — install the extension and reload')
+        setError('Freighter not installed - install the extension and reload')
         return
       }
       const key = await window.freighter.getPublicKey()
@@ -95,7 +84,7 @@ export default function FreighterConnect({ onConnect, className = '' }: Freighte
       <div className={`flex items-center gap-2 ${className}`}>
         <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
         <span className="text-sm text-zinc-300 font-mono">
-          {publicKey.slice(0, 4)}…{publicKey.slice(-4)}
+          {publicKey.slice(0, 4)}...{publicKey.slice(-4)}
         </span>
         <button
           onClick={disconnect}
