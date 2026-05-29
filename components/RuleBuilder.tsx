@@ -12,12 +12,30 @@ const RULE_TYPES: AlertRuleType[] = [
   'TransactionFailed',
 ]
 
+const RULE_EXAMPLES: Record<AlertRuleType, string> = {
+  'AnyTransaction': 'Alert on every transaction',
+  'LargeTransfer': 'Alert when transfer amount exceeds threshold',
+  'FunctionCalled': 'Alert when a specific function is called',
+  'AdminFunctionCalled': 'Alert when admin functions are called',
+  'TransactionFailed': 'Alert on failed transactions',
+}
+
 interface RuleBuilderProps {
   rules: AlertRule[]
   onChange: (rules: AlertRule[]) => void
 }
 
 const emptyRule = (): AlertRule => ({ type: 'AnyTransaction' })
+
+function rulesEqual(a: AlertRule, b: AlertRule): boolean {
+  if (a.type !== b.type) return false
+  if (a.threshold_xlm !== b.threshold_xlm) return false
+  if (a.function_name !== b.function_name) return false
+  if (!a.function_names && !b.function_names) return true
+  if (!a.function_names || !b.function_names) return false
+  return a.function_names.length === b.function_names.length &&
+    a.function_names.every((f, i) => f === b.function_names![i])
+}
 
 export default function RuleBuilder({ rules, onChange }: RuleBuilderProps) {
   const [draft, setDraft] = useState<AlertRule>(emptyRule())
@@ -72,6 +90,8 @@ export default function RuleBuilder({ rules, onChange }: RuleBuilderProps) {
         setError('Enter at least one function name')
         return
       }
+      // Sort function names for consistency
+      draft.function_names = [...draft.function_names].sort()
     }
     if (isDuplicateLabel(draft)) {
       setWarning('This rule already exists')
@@ -101,6 +121,7 @@ export default function RuleBuilder({ rules, onChange }: RuleBuilderProps) {
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
+          <p className="text-xs text-zinc-500 mt-1">{RULE_EXAMPLES[draft.type]}</p>
         </div>
 
         {draft.type === 'LargeTransfer' && (
