@@ -15,6 +15,7 @@ interface FormErrors {
   webhook_url?: string
   rules?: string
   wallet?: string
+  network?: string
 }
 
 export default function NewContractPage() {
@@ -72,6 +73,28 @@ export default function NewContractPage() {
   function isWalletConnected(): boolean {
     // Check if Freighter has a connected key stored in the DOM (set by FreighterConnect)
     return typeof window !== 'undefined' && !!window.freighter
+  }
+
+  async function checkNetworkMismatch(selectedNetwork: Network) {
+    if (!window.freighter) return
+    try {
+      const walletNetwork = await window.freighter.getNetwork()
+      const networkMap: Record<string, string> = {
+        testnet: 'TESTNET',
+        mainnet: 'PUBLIC',
+        futurenet: 'FUTURENET',
+      }
+      const expectedNetwork = networkMap[selectedNetwork]
+      if (walletNetwork !== expectedNetwork) {
+        setNetworkWarning(
+          `Your wallet is on ${walletNetwork}, but this contract is on ${selectedNetwork.toUpperCase()}`
+        )
+      } else {
+        setNetworkWarning(null)
+      }
+    } catch {
+      setNetworkWarning(null)
+    }
   }
 
   async function handleSave() {
@@ -165,13 +188,22 @@ export default function NewContractPage() {
           <label className="block text-sm font-medium text-zinc-300 mb-1.5">Network</label>
           <select
             value={network}
-            onChange={(e) => setNetwork(e.target.value as Network)}
+            onChange={(e) => {
+              const newNetwork = e.target.value as Network
+              setNetwork(newNetwork)
+              checkNetworkMismatch(newNetwork)
+            }}
             className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors"
           >
             <option value="testnet">Testnet</option>
             <option value="mainnet">Mainnet</option>
             <option value="futurenet">Futurenet</option>
           </select>
+          {networkWarning && (
+            <p className="mt-2 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-2">
+              ⚠️ {networkWarning}
+            </p>
+          )}
         </div>
 
         {/* Webhook URL */}
