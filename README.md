@@ -35,7 +35,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Install the [Freighter wallet extension](https://www.freighter.app/) to enable contract registration.
+### Browser & wallet requirements
+
+- **Browsers**: Chrome, Firefox, Edge, Safari (latest versions)
+- **Wallet**: [Freighter extension](https://www.freighter.app/) required for contract registration and transaction signing
+  - Install from [freighter.app](https://www.freighter.app/)
+  - Supported on Chrome, Firefox, and Edge
+  - Must be connected to the same network (Mainnet, Testnet, or Futurenet) as the contract you're registering
 
 ## Project structure
 
@@ -65,6 +71,34 @@ lib/
 types/
   index.ts                  # Shared types (mirrors core Rust structs)
 ```
+
+## Architecture overview
+
+### Page flow
+
+The dashboard follows a standard Next.js App Router structure:
+
+1. **Landing page** (`app/page.tsx`) — unauthenticated entry point with feature overview
+2. **Dashboard** (`app/dashboard/page.tsx`) — authenticated view showing contract stats and grid
+3. **Contract list** (`app/contracts/page.tsx`) — all registered contracts
+4. **Add contract** (`app/contracts/new/page.tsx`) — registration form with Freighter signing
+5. **Contract detail** (`app/contracts/[id]/page.tsx`) — alert rules, webhook logs, and history
+
+### Storage layer
+
+- **localStorage** (`lib/storage.ts`) — persists registered contracts and user preferences
+- **Freighter wallet** — stores user identity and network selection
+- **Backend API** (`lib/api.ts`) — optional txwatch-core integration for webhook delivery logs
+
+### Stellar integration boundaries
+
+The app integrates with Stellar at three points:
+
+1. **Horizon REST API** — fetch account balances, transaction history, and network status
+2. **Soroban RPC** — contract simulation, ledger entry reads, and address validation
+3. **Freighter wallet** — user authentication, transaction signing, and network switching
+
+See [Stellar integration](#stellar-integration) for implementation details.
 
 ## Environment variables
 
@@ -224,6 +258,26 @@ Lint -> Type-check -> Build
 ```
 
 See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+
+## Roadmap
+
+### Near-term
+
+- [ ] Multi-signature contract support
+- [ ] Advanced filtering and search for alert history
+- [ ] Export alert logs as CSV
+
+### Medium-term
+
+- [ ] Real-time WebSocket updates for alert delivery
+- [ ] Custom alert rule templates
+- [ ] Batch contract registration
+
+### Future
+
+- [ ] Mobile app (React Native)
+- [ ] Alert aggregation across multiple contracts
+- [ ] Integration with external notification services (Slack, Discord, email)
 
 ## Sister repos
 
