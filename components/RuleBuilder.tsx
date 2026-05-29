@@ -40,21 +40,42 @@ function rulesEqual(a: AlertRule, b: AlertRule): boolean {
 export default function RuleBuilder({ rules, onChange }: RuleBuilderProps) {
   const [draft, setDraft] = useState<AlertRule>(emptyRule())
   const [error, setError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
   function updateDraft(patch: Partial<AlertRule>) {
     setDraft((prev) => ({ ...prev, ...patch }))
     setError(null)
+    setWarning(null)
   }
 
   function handleTypeChange(type: AlertRuleType) {
     setDraft({ type })
     setError(null)
+    setWarning(null)
+  }
+
+  function isDuplicateLabel(newRule: AlertRule): boolean {
+    return rules.some((rule) => {
+      if (newRule.type !== rule.type) return false
+      if (newRule.type === 'LargeTransfer') return newRule.threshold_xlm === rule.threshold_xlm
+      if (newRule.type === 'FunctionCalled') return newRule.function_name === rule.function_name
+      if (newRule.type === 'AdminFunctionCalled') {
+        const newNames = (newRule.function_names ?? []).sort().join(',')
+        const existingNames = (rule.function_names ?? []).sort().join(',')
+        return newNames === existingNames
+      }
+      return true // AnyTransaction and TransactionFailed
+    })
   }
 
   function addRule() {
     if (draft.type === 'LargeTransfer') {
-      if (!draft.threshold_xlm || draft.threshold_xlm <= 0) {
-        setError('Enter a positive XLM threshold')
+      if (draft.threshold_xlm === undefined || draft.threshold_xlm === null || isNaN(draft.threshold_xlm)) {
+        setError('Enter a valid XLM threshold')
+        return
+      }
+      if (draft.threshold_xlm <= 0) {
+        setError('Threshold must be greater than 0')
         return
       }
     }
@@ -72,16 +93,14 @@ export default function RuleBuilder({ rules, onChange }: RuleBuilderProps) {
       // Sort function names for consistency
       draft.function_names = [...draft.function_names].sort()
     }
-
-    // Check for duplicates
-    if (rules.some((rule) => rulesEqual(rule, draft))) {
-      setError('This rule already exists')
+    if (isDuplicateLabel(draft)) {
+      setWarning('This rule already exists')
       return
     }
-
     onChange([...rules, draft])
     setDraft(emptyRule())
     setError(null)
+    setWarning(null)
   }
 
   function removeRule(index: number) {
@@ -156,6 +175,7 @@ export default function RuleBuilder({ rules, onChange }: RuleBuilderProps) {
         )}
 
         {error && <p className="text-xs text-red-400">{error}</p>}
+        {warning && <p className="text-xs text-amber-400">{warning}</p>}
 
         <button
           type="button"
@@ -170,48 +190,34 @@ export default function RuleBuilder({ rules, onChange }: RuleBuilderProps) {
       </div>
 
       {rules.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs text-zinc-500">
-            {rules.length} rule{rules.length !== 1 ? 's' : ''} added
-            {rules.length > 0 && (
-              <span className="ml-2">
-                ({rules.filter(r => r.type === 'AnyTransaction').length} AnyTransaction,{' '}
-                {rules.filter(r => r.type === 'LargeTransfer').length} LargeTransfer,{' '}
-                {rules.filter(r => r.type === 'FunctionCalled').length} FunctionCalled,{' '}
-                {rules.filter(r => r.type === 'AdminFunctionCalled').length} AdminFunctionCalled,{' '}
-                {rules.filter(r => r.type === 'TransactionFailed').length} TransactionFailed)
-              </span>
-            )}
-          </p>
-          <ul className="space-y-2">
-            {rules.map((rule, i) => (
-              <li key={i} className="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <AlertRuleBadge type={rule.type} />
-                  {rule.threshold_xlm !== undefined && (
-                    <span className="text-xs text-zinc-400">≥ {rule.threshold_xlm} XLM</span>
-                  )}
-                  {rule.function_name && (
-                    <span className="text-xs font-mono text-zinc-400">{rule.function_name}</span>
-                  )}
-                  {rule.function_names?.length ? (
-                    <span className="text-xs font-mono text-zinc-400">{rule.function_names.join(', ')}</span>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeRule(i)}
-                  className="text-zinc-600 hover:text-red-400 transition-colors ml-2"
-                  aria-label="Remove rule"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ul className="space-y-2">
+          {rules.map((rule, i) => (
+            <li key={i} className="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <AlertRuleBadge type={rule.type} />
+                {rule.threshold_xlm !== undefined && (
+                  <span className="text-xs text-zinc-400">&gt;= {rule.threshold_xlm} XLM</span>
+                )}
+                {rule.function_name && (
+                  <span className="text-xs font-mono text-zinc-400">{rule.function_name}</span>
+                )}
+                {rule.function_names?.length ? (
+                  <span className="text-xs font-mono text-zinc-400">{rule.function_names.join(', ')}</span>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => removeRule(i)}
+                className="text-zinc-600 hover:text-red-400 transition-colors ml-2"
+                aria-label="Remove rule"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )
