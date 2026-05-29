@@ -83,7 +83,16 @@ export function saveContract(contract: WatchedContract) {
 }
 
 export function deleteContract(id: string) {
+  const contract = getContract(id)
   save(CONTRACTS_KEY, getContracts().filter((c) => c.id !== id))
+  if (contract) {
+    deleteAlerts(contract.contract_id)
+  }
+}
+
+export function deleteAlerts(contractId: string) {
+  const alerts = load<AlertPayload>(ALERTS_KEY)
+  save(ALERTS_KEY, alerts.filter((a) => a.contract_id !== contractId))
 }
 
 export function getAlerts(contractId: string): AlertPayload[] {
@@ -102,7 +111,22 @@ export function getTodayAlertCount(): number {
   return load<AlertPayload>(ALERTS_KEY).filter((a) => a.timestamp >= start).length
 }
 
-export function getLastAlertAt(contractId: string): number | null {
-  const alerts = getAlerts(contractId)
-  return alerts.length > 0 ? Math.max(...alerts.map((a) => a.timestamp)) : null
+export function onAlertsChange(callback: () => void): () => void {
+  const handler = (e: StorageEvent) => {
+    if (e.key === ALERTS_KEY) {
+      callback()
+    }
+  }
+  window.addEventListener('storage', handler)
+  return () => window.removeEventListener('storage', handler)
+}
+
+export function onContractsChange(callback: () => void): () => void {
+  const handler = (e: StorageEvent) => {
+    if (e.key === CONTRACTS_KEY) {
+      callback()
+    }
+  }
+  window.addEventListener('storage', handler)
+  return () => window.removeEventListener('storage', handler)
 }
