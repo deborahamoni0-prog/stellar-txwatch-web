@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertRule, Network, WatchedContract } from '@/types'
 import { isValidContractId, isValidUrl } from '@/lib/stellar'
-import { saveContract } from '@/lib/storage'
+import { saveContract, getContracts } from '@/lib/storage'
 import { sendTestWebhook } from '@/lib/api'
 import RuleBuilder from '@/components/RuleBuilder'
 import FreighterConnect from '@/components/FreighterConnect'
@@ -35,13 +35,36 @@ export default function NewContractPage() {
 
   function validate(): FormErrors {
     const e: FormErrors = {}
-    if (!label.trim()) e.label = 'Label is required'
-    if (!contractId.trim()) e.contract_id = 'Contract ID is required'
-    else if (!isValidContractId(contractId.trim())) e.contract_id = 'Must be a valid Soroban contract address (starts with C, 56 chars)'
-    if (!webhookUrl.trim()) e.webhook_url = 'Webhook URL is required'
-    else if (!isValidUrl(webhookUrl.trim())) e.webhook_url = 'Must be a valid http/https URL'
-    if (rules.length === 0) e.rules = 'Add at least one alert rule to monitor this contract'
+    const trimmedLabel = label.trim()
+    const trimmedContractId = contractId.trim()
+    const trimmedWebhookUrl = webhookUrl.trim()
+
+    if (!trimmedLabel) e.label = 'Label is required'
+    if (!trimmedContractId) e.contract_id = 'Contract ID is required'
+    else if (!isValidContractId(trimmedContractId)) e.contract_id = 'Must be a valid Soroban contract address (starts with C, 56 chars)'
+    else {
+      // Check for duplicate contract_id + network combination
+      const isDuplicate = getContracts().some(
+        (c) => c.contract_id === trimmedContractId && c.network === network
+      )
+      if (isDuplicate) e.contract_id = `This contract is already registered on ${network}`
+    }
+    if (!trimmedWebhookUrl) e.webhook_url = 'Webhook URL is required'
+    else if (!isValidUrl(trimmedWebhookUrl)) e.webhook_url = 'Must be a valid http/https URL'
+    if (rules.length === 0) e.rules = 'Add at least one alert rule'
     return e
+  }
+
+  function isFormValid(): boolean {
+    return (
+      label.trim().length > 0 &&
+      label.length <= 100 &&
+      contractId.trim().length > 0 &&
+      isValidContractId(contractId.trim()) &&
+      webhookUrl.trim().length > 0 &&
+      isValidUrl(webhookUrl.trim()) &&
+      rules.length > 0
+    )
   }
 
   function isWalletConnected(): boolean {
@@ -73,15 +96,15 @@ export default function NewContractPage() {
   }
 
   async function handleTestWebhook() {
-    if (!webhookUrl.trim() || !isValidUrl(webhookUrl.trim())) {
-      setTestStatus('error')
-      setTestError('Enter a valid URL to test')
+    const trimmedWebhookUrl = webhookUrl.trim()
+    if (!trimmedWebhookUrl || !isValidUrl(trimmedWebhookUrl)) {
+      setErrors((e) => ({ ...e, webhook_url: 'Enter a valid URL to test' }))
       return
     }
     setTestStatus('sending')
     setTestError(null)
     try {
-      await sendTestWebhook(webhookUrl.trim(), contractId.trim() || 'TEST_CONTRACT')
+      await sendTestWebhook(trimmedWebhookUrl, contractId.trim() || 'TEST_CONTRACT')
       setTestStatus('ok')
     } catch (err) {
       setTestStatus('error')
@@ -105,9 +128,15 @@ export default function NewContractPage() {
             placeholder="e.g. My DEX Contract"
             value={label}
             onChange={(e) => { setLabel(e.target.value); setErrors((prev) => ({ ...prev, label: undefined })) }}
+            maxLength={100}
             className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors"
           />
-          {errors.label && <p className="mt-1 text-xs text-red-400">{errors.label}</p>}
+          <div className="flex justify-between items-start mt-1">
+            <div>
+              {errors.label && <p className="text-xs text-red-400">{errors.label}</p>}
+            </div>
+            <p className="text-xs text-zinc-500">{label.length}/100</p>
+          </div>
         </div>
 
         {/* Contract ID */}
@@ -120,6 +149,7 @@ export default function NewContractPage() {
             onChange={(e) => { setContractId(e.target.value); setErrors((prev) => ({ ...prev, contract_id: undefined })) }}
             className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors"
           />
+          <p className="mt-1.5 text-xs text-zinc-400">Soroban contract addresses start with <span className="font-mono">C</span> and are 56 characters long</p>
           {errors.contract_id && <p className="mt-1 text-xs text-red-400">{errors.contract_id}</p>}
         </div>
 
@@ -154,9 +184,10 @@ export default function NewContractPage() {
               disabled={testStatus === 'sending'}
               className="px-3 py-2.5 rounded-lg border border-zinc-700 hover:border-zinc-500 text-sm text-zinc-300 hover:text-zinc-100 transition-colors disabled:opacity-50 whitespace-nowrap"
             >
-              {testStatus === 'sending' ? 'Sending…' : testStatus === 'ok' ? '✓ Sent' : testStatus === 'error' ? '✗ Failed' : 'Test'}
+              {testStatus === 'sending' ? 'Sending...' : testStatus === 'ok' ? '[OK] Sent' : testStatus === 'error' ? '[FAIL] Failed' : 'Test'}
             </button>
           </div>
+          <p className="mt-1.5 text-xs text-zinc-400">HTTP and HTTPS are supported. Example: <span className="font-mono">https://api.example.com/alerts</span></p>
           {errors.webhook_url && <p className="mt-1 text-xs text-red-400">{errors.webhook_url}</p>}
           {testStatus === 'error' && testError && <p className="mt-1 text-xs text-red-400">{testError}</p>}
           {testStatus === 'ok' && <p className="mt-1 text-xs text-emerald-400">Test payload delivered successfully</p>}
@@ -186,10 +217,10 @@ export default function NewContractPage() {
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-sm font-medium text-white transition-colors"
+            disabled={saving || !isFormValid()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-white transition-colors"
           >
-            {saving ? 'Saving…' : 'Save Contract'}
+            {saving ? 'Saving...' : 'Save Contract'}
           </button>
           <button
             type="button"
