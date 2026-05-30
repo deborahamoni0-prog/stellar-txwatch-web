@@ -1,11 +1,17 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
 
+function getAuthHeaders(): Record<string, string> {
+  // Extension point for future authenticated requests
+  // Implement token/header logic here
+  return {}
+}
+
 export async function apiFetch<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     ...options,
   })
   if (!res.ok) {
