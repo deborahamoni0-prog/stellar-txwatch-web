@@ -11,6 +11,7 @@ import AlertRuleBadge from '@/components/AlertRuleBadge'
 import WebhookLog from '@/components/WebhookLog'
 import RuleBuilder from '@/components/RuleBuilder'
 import CopyButton from '@/components/CopyButton'
+import MetadataSection from '@/components/MetadataSection'
 
 export default function ContractDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -88,18 +89,9 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
 
       {/* Metadata */}
       <div className="grid sm:grid-cols-3 gap-4">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <p className="text-xs text-zinc-500 mb-1">Webhook URL</p>
-          <p className="text-sm text-zinc-300 break-all">{contract.webhook_url}</p>
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <p className="text-xs text-zinc-500 mb-1">Registered</p>
-          <p className="text-sm text-zinc-300">{formatDate(contract.created_at)}</p>
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <p className="text-xs text-zinc-500 mb-1">Total Alerts</p>
-          <p className="text-sm text-zinc-300">{alerts.length}</p>
-        </div>
+        <MetadataSection label="Webhook URL" value={contract.webhook_url} />
+        <MetadataSection label="Registered" value={formatDate(contract.created_at)} />
+        <MetadataSection label="Total Alerts" value={alerts.length} />
       </div>
 
       {/* Active Rules */}
