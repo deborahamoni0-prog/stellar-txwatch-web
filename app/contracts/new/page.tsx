@@ -136,11 +136,16 @@ export default function NewContractPage() {
     testAbortRef.current?.abort()
     const controller = new AbortController()
     testAbortRef.current = controller
+    const trimmedContractId = contractId.trim()
+    if (!trimmedContractId || !isValidContractId(trimmedContractId)) {
+      setErrors((e) => ({ ...e, contract_id: 'Enter a valid contract ID before testing' }))
+      return
+    }
     setTestStatus('sending')
     setTestError(null)
     setTestStatusCode(null)
     try {
-      const { status, ok } = await sendTestWebhook(trimmedWebhookUrl, contractId.trim() || 'TEST_CONTRACT', network, controller.signal)
+      const { status, ok } = await sendTestWebhook(trimmedWebhookUrl, trimmedContractId, network, controller.signal)
       setTestStatusCode(status)
       if (ok) {
         setTestStatus('ok')
