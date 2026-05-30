@@ -1,4 +1,4 @@
-import { WatchedContract, AlertPayload } from '@/types'
+import { WatchedContract, AlertPayload, Network } from '@/types'
 
 const CONTRACTS_KEY = 'txwatch_contracts'
 const ALERTS_KEY = 'txwatch_alerts'
@@ -15,6 +15,7 @@ function load<T>(key: string): T[] {
 }
 
 const STORAGE_QUOTA_BYTES = 5 * 1024 * 1024 // 5MB typical limit
+const MAX_ALERTS_PER_CONTRACT = 500
 const ALERTS_RETENTION_DAYS = 90
 
 function getStorageSize(): number {
@@ -108,9 +109,40 @@ export function getAlerts(contractId: string): AlertPayload[] {
   )
 }
 
+export function seedMockAlerts(
+  contractId: string,
+  network: Network,
+  count = 5
+): void {
+  if (typeof window === 'undefined') return
+
+  const now = Date.now()
+  const alerts = Array.from({ length: count }, (_, index) => {
+    const sequence = index + 1
+    const hash = `MOCK-${contractId.slice(0, 10)}-${sequence.toString().padStart(2, '0')}`
+    const horizonHost = network === 'mainnet' ? 'horizon.stellar.org' : 'horizon-testnet.stellar.org'
+    return {
+      label: `Mock Alert ${sequence}`,
+      contract_id: contractId,
+      network,
+      rule_triggered: 'AnyTransaction',
+      transaction_hash: `${hash}-${Math.random().toString(16).slice(2, 18)}`,
+      amount: 10 + index * 5,
+      timestamp: now - index * 15 * 60 * 1000,
+      horizon_link: `https://${horizonHost}/transactions/${hash}`,
+    }
+  })
+
+  save(ALERTS_KEY, [...alerts, ...load<AlertPayload>(ALERTS_KEY)])
+}
+
 export function addAlert(alert: AlertPayload) {
-  const alerts = load<AlertPayload>(ALERTS_KEY)
-  save(ALERTS_KEY, [alert, ...alerts])
+  const all = [alert, ...load<AlertPayload>(ALERTS_KEY)]
+  const counts: Record<string, number> = {}
+  save(ALERTS_KEY, all.filter((a) => {
+    counts[a.contract_id] = (counts[a.contract_id] ?? 0) + 1
+    return counts[a.contract_id] <= MAX_ALERTS_PER_CONTRACT
+  }))
 }
 
 export function deleteAlertsByContractId(contractId: string) {
