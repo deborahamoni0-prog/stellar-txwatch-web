@@ -17,6 +17,7 @@ const NETWORK_LABELS: Record<Network, string> = {
 
 export default function ContractsPage() {
   const [contracts, setContracts] = useState<WatchedContract[]>([])
+  const [networkFilter, setNetworkFilter] = useState<NetworkFilter>('all')
   const [mounted, setMounted] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('flat')
 
@@ -97,6 +98,35 @@ export default function ContractsPage() {
         </div>
       </div>
 
+      {/* Network filter tabs */}
+      <div className="flex items-center gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg w-fit" role="group" aria-label="Filter by network">
+        {NETWORK_FILTERS.map(({ value, label }) => {
+          const count = value === 'all' ? contracts.length : contracts.filter((c) => c.network === value).length
+          const isActive = networkFilter === value
+          return (
+            <button
+              key={value}
+              onClick={() => setNetworkFilter(value)}
+              aria-pressed={isActive}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+              }`}
+            >
+              {label}
+              <span
+                className={`text-xs px-1.5 py-0.5 rounded-full ${
+                  isActive ? 'bg-indigo-500 text-indigo-100' : 'bg-zinc-800 text-zinc-500'
+                }`}
+              >
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       {contracts.length === 0 ? (
         <EmptyState
           title="No contracts yet"
@@ -139,7 +169,7 @@ export default function ContractsPage() {
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {contracts.map((c) => (
+          {filtered.map((c) => (
             <ContractCard
               key={c.id}
               contract={c}
