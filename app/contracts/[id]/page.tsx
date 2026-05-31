@@ -15,6 +15,7 @@ import MetadataSection from '@/components/MetadataSection'
 
 export default function ContractDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const { trackEvent } = useAnalytics()
   const [contract, setContract] = useState<WatchedContract | null>(null)
   const [alerts, setAlerts] = useState<AlertPayload[]>([])
   const [mounted, setMounted] = useState(false)
@@ -46,6 +47,7 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
     setEditedRules(contract!.rules)
     setRulesError(null)
     setShowEditRules(true)
+    trackEvent('rule_edit_opened', { contractId: params.id, ruleCount: contract!.rules.length })
   }
 
   function saveRules() {
@@ -54,6 +56,7 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
     saveContract(updated)
     setContract(updated)
     setShowEditRules(false)
+    trackEvent('rule_edit_saved', { contractId: params.id, ruleCount: editedRules.length })
   }
 
   function hasUnsavedChanges(): boolean {
@@ -237,7 +240,16 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-zinc-100">Edit Alert Rules</h3>
-            <RuleBuilder rules={editedRules} onChange={setEditedRules} />
+            <RuleBuilder
+              rules={editedRules}
+              onChange={setEditedRules}
+              onRulesChanged={(rules, action) =>
+                trackEvent(action === 'remove' ? 'rule_removed' : 'rule_added', {
+                  contractId: params.id,
+                  ruleCount: rules.length,
+                })
+              }
+            />
             {rulesError && <p className="text-xs text-red-400">{rulesError}</p>}
             <div className="flex gap-3 pt-2">
               <button
