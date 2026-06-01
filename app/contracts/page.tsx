@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { WatchedContract, Network } from '@/types'
 import { getContracts, getAlerts } from '@/lib/storage'
@@ -29,6 +30,8 @@ export default function ContractsPage() {
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [mounted, setMounted] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('flat')
+  const [page, setPage] = useState(1)
+  const [filterOpen, setFilterOpen] = useState(false)
 
   useEffect(() => {
     const all = getContracts()
@@ -42,6 +45,19 @@ export default function ContractsPage() {
     }
     return allContracts.filter((c) => c.network === networkFilter)
   }, [allContracts, networkFilter])
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setPage(1)
+  }, [networkFilter, filter])
+
+  const filtered = useMemo(() => {
+    if (networkFilter === 'all') return contracts
+    return contracts.filter((c: WatchedContract) => c.network === networkFilter)
+  }, [contracts, networkFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const grouped = useMemo(() => {
     const groups: Record<Network, WatchedContract[]> = {
@@ -64,7 +80,8 @@ export default function ContractsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-zinc-100">Contracts</h1>
           <p className="text-sm text-zinc-500 mt-1">
@@ -129,7 +146,8 @@ export default function ContractsPage() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Add Contract
+            <span className="hidden sm:inline">Add Contract</span>
+            <span className="sm:hidden">Add</span>
           </Link>
         </div>
       </div>
@@ -193,30 +211,32 @@ export default function ContractsPage() {
         />
       ) : viewMode === 'grouped' ? (
         <div className="space-y-8">
-          {(Object.entries(NETWORK_LABELS) as [Network, string][]).map(([network, label]) => {
-            const networkContracts = grouped[network]
-            if (networkContracts.length === 0) return null
-            return (
-              <section key={network}>
-                <h2 className="text-lg font-semibold text-zinc-300 mb-3 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-zinc-500" />
-                  {label}
-                  <span className="text-sm font-normal text-zinc-500">
-                    ({networkContracts.length})
-                  </span>
-                </h2>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {networkContracts.map((c) => (
-                    <ContractCard
-                      key={c.id}
-                      contract={c}
-                      lastAlertTime={getAlerts(c.id)[0]?.timestamp}
-                    />
-                  ))}
-                </div>
-              </section>
-            )
-          })}
+          {(Object.entries(NETWORK_LABELS) as [Network, string][]).map(
+            ([network, label]) => {
+              const networkContracts = grouped[network]
+              if (networkContracts.length === 0) return null
+              return (
+                <section key={network}>
+                  <h2 className="text-lg font-semibold text-zinc-300 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-zinc-500" />
+                    {label}
+                    <span className="text-sm font-normal text-zinc-500">
+                      ({networkContracts.length})
+                    </span>
+                  </h2>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {networkContracts.map((c) => (
+                      <ContractCard
+                        key={c.id}
+                        contract={c}
+                        lastAlertTime={getAlerts(c.contract_id)[0]?.timestamp}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )
+            }
+          )}
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
